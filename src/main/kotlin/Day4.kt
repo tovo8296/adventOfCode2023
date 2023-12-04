@@ -1,9 +1,12 @@
 import kotlin.math.pow
 
-data class Card(
+private data class Card(
+    val index: Int,
     val winNumbers: List<Int>,
     val myNumbers: List<Int>
-)
+) {
+    var cardCount = 1
+}
 
 fun main() {
     val cards = parse()
@@ -11,18 +14,32 @@ fun main() {
         .map { calcPoints(it) }
         .sum()
     println("Total points: $totalPoints")
+
+    // part 2
+    var totalCardCount = 0
+    cards.forEach { card ->
+        totalCardCount += card.cardCount
+        val winMatches = calcWinMatches(card)
+        for (i in 1..winMatches) {
+            cards.getOrNull(card.index + i)?.let { it.cardCount += card.cardCount }
+        }
+    }
+    println("Total card count: $totalCardCount")
 }
 
-fun calcPoints(card: Card): Int {
-    val winCount = card.myNumbers.filter { card.winNumbers.contains(it) }.size
-    return 2.0.pow(winCount.toDouble() - 1).toInt()
-}
+private fun calcWinMatches(card: Card): Int =
+    card.myNumbers.filter { card.winNumbers.contains(it) }.size
 
-private fun parse(): List<Card> = input.lines().map { parseLine(it) }
+private fun calcPoints(card: Card): Int =
+    2.0.pow(calcWinMatches(card).toDouble() - 1).toInt()
 
-private fun parseLine(line: String): Card {
+
+private fun parse(): List<Card> = input.lines().mapIndexed { index, text -> parseLine(index, text) }
+
+private fun parseLine(index: Int, line: String): Card {
     val match = ":(.*)\\|(.*)".toRegex().find(line)!!
     return Card(
+        index = index,
         winNumbers = parseNumbers(match.groupValues[1]),
         myNumbers = parseNumbers(match.groupValues[2])
     )
