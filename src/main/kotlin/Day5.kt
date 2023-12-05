@@ -1,3 +1,4 @@
+import kotlin.math.min
 import kotlin.math.sign
 
 private data class Mapping(
@@ -22,7 +23,30 @@ fun main() {
     val seeds = parseSeeds()
     val allMappings = parseMapping()
     val locations = seeds.map { calcLocationForSeed(it, allMappings) }
-    println("Nearest Location: ${locations.min()}")
+    println("Part 1: Nearest Location: ${locations.min()}")
+
+    // part2
+    val seedRanges = parseSeedRanges()
+    val seedCount = seedRanges.map { it.endInclusive - it.first + 1 }.sum()
+    println("seeds: $seedCount") // seeds: 1_879_881_983
+
+    var minLoc = Long.MAX_VALUE
+    var count = 0L
+    val startTime = System.currentTimeMillis()
+    seedRanges.forEach { range ->
+        range.forEach { seed ->
+            val loc = calcLocationForSeed(seed, allMappings)
+            minLoc = min(minLoc, loc)
+            // debug_
+            count++
+            if (count % 10_000_000L == 0L) {
+                val time = System.currentTimeMillis()
+                val percent = count * 100 / seedCount
+                println("Step: $count, min loc: $minLoc after ${(time - startTime) / 1000} s, progress: $percent %")
+            }
+        }
+    }
+    println("Part 2: Nearest Location: $minLoc")
 }
 
 private fun calcLocationForSeed(seed: Long, allMappings: List<List<Mapping>>): Long =
@@ -35,8 +59,15 @@ private fun calcMapping(source: Long, mappings: List<Mapping>): Long =
 private fun parseSeeds(): List<Long> =
     input.lines().first().substringAfter(":").trim().split(" ").map { it.toLong() }.toList()
 
+private fun parseSeedRanges(): List<LongRange> {
+    val numbers = parseSeeds()
+    return (0 until numbers.size).step(2).map { i ->
+        numbers[i] until (numbers[i] + numbers[i + 1])
+    }
+}
+
 private fun parseMapping(): List<List<Mapping>> {
-    var result = mutableListOf<List<Mapping>>()
+    val result = mutableListOf<List<Mapping>>()
     lateinit var currentArea: MutableList<Mapping>
     input.lines().drop(1).filter { !it.trim().isEmpty() }.forEach { line ->
         if (line.contains("map")) {
