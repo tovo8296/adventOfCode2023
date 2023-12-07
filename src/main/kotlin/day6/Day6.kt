@@ -1,4 +1,4 @@
-// Raced 1
+package day6// Raced 1
 // https://www.wolframalpha.com/input?i=0+%3D+-x%5E2+%2B+40*x-219
 //=> 27 options
 

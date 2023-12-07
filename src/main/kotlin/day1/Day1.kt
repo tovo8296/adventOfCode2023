@@ -1,3 +1,5 @@
+package day1
+
 fun main() {
 
     var sum = 0

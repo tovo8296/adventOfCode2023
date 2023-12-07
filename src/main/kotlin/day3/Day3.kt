@@ -1,3 +1,7 @@
+package day3
+
+import Coord
+
 data class PartNumber(
     val value: Int,
     val lineNumber: Int,

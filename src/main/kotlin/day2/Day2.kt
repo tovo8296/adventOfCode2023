@@ -1,3 +1,5 @@
+package day2
+
 fun main() {
     val games: List<Game> = input.lines().map { parseLine(it) }
     //println(games.joinToString("\n"))
