@@ -15,18 +15,34 @@ data class Hand(val cards: List<Card>) : Comparable<Hand> {
 
     private fun calcType(): Type =
         when {
-            hasNOfAKind(5) -> Type.Five
+            hasNOfAKind(5) || countJoker() == 5 -> Type.Five
             hasNOfAKind(4) -> Type.Four
-            hasNOfAKind(3) && hasNOfAKind(2) -> Type.FullHouse
+            hasFullHouse() -> Type.FullHouse
             hasNOfAKind(3) -> Type.Triple
-            countNOfAKind(2) == 2 -> Type.TwoDouble
+            hasTwoDouble() -> Type.TwoDouble
             hasNOfAKind(2) -> Type.Double
             else -> Type.High
         }
 
-    private fun hasNOfAKind(n: Int): Boolean = countNOfAKind(n) > 0
-    private fun countNOfAKind(n: Int): Int =
-        cards.toSet().map { s -> cards.count { it == s } }.filter { it == n }.size
+    private fun hasTwoDouble() = countNOfAKindNoJoker(2) == 2
+
+    private fun hasFullHouse() =
+        (hasNOfAKindNoJoker(3) && hasNOfAKindNoJoker(2)) ||
+                (hasTwoDouble() && countJoker() == 1)
+
+    private fun hasNOfAKind(n: Int): Boolean = countSameCards().contains(n - countJoker())
+
+    private fun hasNOfAKindNoJoker(n: Int): Boolean = countNOfAKindNoJoker(n) > 0
+
+    private fun countNOfAKindNoJoker(n: Int): Int =
+        countSameCards().filter { it == n }.size
+
+    private fun nonJokers() = cards.filter { it != Card.J }
+
+    private fun countSameCards(): List<Int> =
+        nonJokers().toSet().map { s -> cards.count { it == s } }
+
+    private fun countJoker(): Int = cards.count { it == Card.J }
 }
 
 enum class Type {
@@ -34,7 +50,7 @@ enum class Type {
 }
 
 enum class Card() {
-    A, K, Q, J, T, _9, _8, _7, _6, _5, _4, _3, _2;
+    A, K, Q, /*J, */ T, _9, _8, _7, _6, _5, _4, _3, _2, J;
 
     fun id(): Char = name.last()
 }
