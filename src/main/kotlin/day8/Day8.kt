@@ -1,5 +1,9 @@
 package day8
 
+import day6.distance
+import kotlin.math.abs
+import kotlin.math.min
+
 data class Node(val name: String, val left: String, val right: String)
 
 enum class Direction {
@@ -9,29 +13,62 @@ enum class Direction {
 fun main() {
     val directions = parseDirections()
     val nodes = parseNodes()
-    var steps = 0
-    var currentNode = nodes.find { it.name == "AAA" }!!
-    while(currentNode.name != "ZZZ") {
-        val nextDir = directions[steps % directions.size]
-        currentNode = findNextNode(currentNode, nextDir, nodes)
-        steps++
+    val startNode = nodes["AAA"]!!
+    val steps = calculateDistanceToDestination(startNode, directions, nodes) { it == "ZZZ" }
+    println("Single Steps: $steps") // 19199
+
+    val startNodesMulti = nodes.values.filter { it.name.endsWith("A") }
+    val distances = startNodesMulti.map { multiStartNode ->
+        calculateDistanceToDestination(multiStartNode, directions, nodes) {it.endsWith("Z")}.toLong()
     }
-    println("Steps: $steps")
+    val lcm = distances.fold(1L) { acc, dist -> lcm(acc, dist)}
+    println("Multi Steps: $lcm") // 13663968099527
 }
 
-private fun findNextNode(source: Node, direction: Direction, nodes: List<Node>): Node {
-    val nextName = if(direction == Direction.L) source.left else source.right
-    return nodes.find { it.name == nextName }!!
+private fun calculateDistanceToDestination(
+    startNode: Node,
+    directions: List<Direction>,
+    nodes: Map<String, Node>,
+    predicate: (name: String) -> Boolean
+): Int {
+    var currentNode = startNode
+    var steps = 0
+    while (!predicate(currentNode.name)) {
+        currentNode = findNextNode(currentNode, steps, directions, nodes)
+        steps++
+    }
+    return steps
+}
+
+private fun lcm(a: Long, b: Long): Long = abs(a * b) / gcd(a, b)
+
+fun gcd(a: Long, b: Long): Long {
+    var result = min(a, b)
+    while (result > 0L) {
+        if (a % result == 0L && b % result == 0L) {
+            break
+        }
+        result--
+    }
+    return result
+}
+
+private fun findNextNode(
+    currentNode: Node, currentStep: Int, directions: List<Direction>, nodes: Map<String, Node>
+): Node {
+    val nextDir = directions[currentStep % directions.size]
+    val nextName = if (nextDir == Direction.L) currentNode.left else currentNode.right
+    return nodes[nextName]!!
 }
 
 fun parseDirections(): List<Direction> =
-        input.lines().first().map { Direction.valueOf(it.toString()) }
+    input.lines().first().map { Direction.valueOf(it.toString()) }
 
-fun parseNodes(): List<Node> =
+fun parseNodes(): Map<String, Node> =
     input.lines().drop(2).map { line ->
         val match = "([A-Z]+) = \\(([A-Z]+), ([A-Z]+)\\)".toRegex().matchEntire(line)!!
         Node(match.groups[1]!!.value, match.groups[2]!!.value, match.groups[3]!!.value)
-    }
+    }.associate { it.name to it }
 
 val input = """
 LLRRRLRLLRLRRLRLRLRRRLLRRLRRRLRRRLRRRLRRRLRRRLRRLRLLRRRLRRLLRLRLLLRRLRRLRLRLRLRRRLRLRRRLRRLLLRRRLLRRLLRRLLRRRLLLLRLRLRRRLRLRRRLRLLLRLRRLRRRLRRRLRRRLRRRLLRRLLLLRRLLRRLLRRLRLRRRLRRRLRRRLRRLRRRLRRLRRLRRLRLRRRLRRLRRRLRRRLRRLRLRRRLRRLLRLRRLRRRLRLRRLRRRLRRLRRLRRRLLRRRR
