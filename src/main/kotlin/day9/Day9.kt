@@ -2,10 +2,15 @@ package day9
 
 fun main() {
     val sequences = parse()
-    val sum = sequences.map {seq ->
+    val sumOfNext = sequences.map { seq ->
         calculateNextNumber(seq)
     }.sum()
-    println("Sum: $sum")
+    println("Sum of next: $sumOfNext")
+
+    val sumOfPrevious = sequences.map { seq ->
+        calculatePreviousNumber(seq)
+    }.sum()
+    println("Sum of previous: $sumOfPrevious")
 }
 
 fun calculateNextNumber(seq: List<Int>): Int {
@@ -13,15 +18,23 @@ fun calculateNextNumber(seq: List<Int>): Int {
         return 0
     }
     val nextLevel = calculateNextLevel(seq)
-    return seq.last() + nextLevel.last()
+    val nextSeqForward = nextLevel + calculateNextNumber(nextLevel)
+    return seq.last() + nextSeqForward.last()
 }
 
-fun calculateNextLevel(previousLevel: List<Int>): List<Int> {
-    val nextLevel = (1 until previousLevel.size).map { i ->
+fun calculatePreviousNumber(seq: List<Int>): Int {
+    if (seq.all { it == 0 }) {
+        return 0
+    }
+    val nextLevel = calculateNextLevel(seq)
+    val nextSeqBackward = listOf(calculatePreviousNumber(nextLevel)) + nextLevel
+    return seq.first() - nextSeqBackward.first()
+}
+
+fun calculateNextLevel(previousLevel: List<Int>): List<Int> =
+    (1 until previousLevel.size).map { i ->
         previousLevel[i] - previousLevel[i - 1]
     }
-    return nextLevel + calculateNextNumber(nextLevel)
-}
 
 fun parse(): List<List<Int>> =
     input.lines().map {
