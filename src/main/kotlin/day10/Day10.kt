@@ -4,15 +4,31 @@ import Coord
 import Direction
 import java.lang.RuntimeException
 
-enum class Type(val text: Char, val dir1: Direction, val dir2: Direction) {
-    NS('|', Direction.N, Direction.S),
-    WE('-', Direction.W, Direction.E),
-    NW('J', Direction.N, Direction.W),
-    NE('L', Direction.N, Direction.E),
-    SW('7', Direction.S, Direction.W),
-    SE('F', Direction.S, Direction.E);
+enum class Type(val text: Char, val dir1: Direction, val dir2: Direction, val left: List<Direction>, val right: List<Direction>) {
+    NS('|', Direction.N, Direction.S,
+        left = listOf(Direction.E),
+        right = listOf(Direction.W)),
+    WE('-', Direction.W, Direction.E,
+        left = listOf(Direction.N),
+        right = listOf(Direction.S)),
+    NW('J', Direction.N, Direction.W,
+        left = listOf(Direction.E, Direction.SE, Direction.S),
+        right = listOf()),
+    NE('L', Direction.N, Direction.E,
+        left = listOf(),
+        right = listOf(Direction.W, Direction.SW, Direction.S)),
+    SW('7', Direction.S, Direction.W,
+        left = listOf(),
+        right = listOf(Direction.E, Direction.NE, Direction.N)),
+    SE('F', Direction.S, Direction.E,
+        left = listOf(Direction.W, Direction.NW, Direction.N),
+        right = listOf());
 
     val directions = listOf(dir1, dir2)
+}
+
+enum class Mark(val symbol: String) {
+    Left("-"), Right("+"), Pipe("|"), Unknown("?")
 }
 
 data class Pipe(val type: Type, val coord: Coord)
@@ -21,11 +37,52 @@ fun main() {
     val grid = parse()
     val loop = findLoop(grid)
     println("Loop half: ${loop.size / 2}")
+
+    val markedGrid = createMarkedGrid(grid)
+    markLoop(markedGrid, loop)
+    markLeftRight(markedGrid, loop)
+    val leftCount = markedGrid.flatten().count { it == Mark.Left }
+    val rightCount = markedGrid.flatten().count { it == Mark.Right }
+
+    println(markedGrid.map { it.map{it.symbol}.joinToString("") }.joinToString("\n"))
+    println("\n\n: Left: $leftCount, Right: $rightCount")
+    // subtract marked fields, which are connected to the map edge
+}
+
+fun markLeftRight(markedGrid: List<MutableList<Mark>>, loop: List<Pipe>) {
+    var previous = loop.first()
+    loop.drop(1).forEach { pipe ->
+        val forward = pipe.type.dir1.go(pipe.coord) == previous.coord
+        val leftMark = if (forward) Mark.Left else Mark.Right
+        val rightMark = if (forward) Mark.Right else Mark.Left
+        fillArea(pipe.coord, pipe.type.left, leftMark, markedGrid)
+        fillArea(pipe.coord, pipe.type.right, rightMark, markedGrid)
+        previous = pipe
+    }
+}
+
+fun fillArea(pipe: Coord, sideDirs: List<Direction>, mark: Mark, markedGrid: List<MutableList<Mark>>) {
+    val points = sideDirs.map { it.go(pipe) }.toMutableList()
+    while(!points.isEmpty()) {
+        val p = points.removeLast()
+        if (markedGrid.getOrNull(p) == Mark.Unknown) {
+            markedGrid.set(p, mark)
+            p.forEachAdjacent { points.add(it) }
+        }
+    }
+}
+
+fun createMarkedGrid(grid: List<List<Type?>>): List<MutableList<Mark>> =
+    grid.map { it.map { Mark.Unknown }.toMutableList() }
+
+fun markLoop(markedGrid: List<MutableList<Mark>>, loop: List<Pipe>) {
+    loop.forEach { pipe ->
+        markedGrid.set(pipe.coord, Mark.Pipe)
+    }
 }
 
 fun findLoop(grid: List<List<Type?>>): List<Pipe> {
     val start = findStart()
-    val startType = Type.SW
     var previous = start
     var current = Pipe(startType, start)
     val loop = mutableListOf<Pipe>()
@@ -34,7 +91,7 @@ fun findLoop(grid: List<List<Type?>>): List<Pipe> {
         val next = findNextCoord(previous, current, grid)
         previous = current.coord
         current = if (next != start) {
-            Pipe(grid[next.y][next.x]!!, next)
+            Pipe(grid.get(next)!!, next)
         } else {
             Pipe(startType, start)
         }
@@ -44,6 +101,9 @@ fun findLoop(grid: List<List<Type?>>): List<Pipe> {
 
 fun findNextCoord(previous: Coord, current: Pipe, grid: List<List<Type?>>): Coord =
     current.type.directions.map { it.go(current.coord) }.find { it != previous }!!
+
+fun <T> List<List<T>>.get(coord: Coord): T = this[coord.y][coord.x]
+fun <T> List<List<T>>.getOrNull(coord: Coord): T? = this.getOrNull(coord.y)?.getOrNull(coord.x)
 
 fun findStart(): Coord {
     input.lines().forEachIndexed { y, line ->
@@ -56,6 +116,10 @@ fun findStart(): Coord {
     throw RuntimeException("Start not found")
 }
 
+fun <T> List<MutableList<T>>.set(coord: Coord, value: T): Unit {
+    this[coord.y][coord.x] = value
+}
+
 fun parse(): List<List<Type?>> =
     input.lines().map { line ->
         line.map { c ->
@@ -63,6 +127,35 @@ fun parse(): List<List<Type?>> =
         }
     }
 
+//val startType = Type.SW
+val dummyInput = """
+FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L
+""".trimIndent()
+
+//val startType = Type.SE
+val dummyInput2 = """
+.F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...
+""".trimIndent()
+
+val startType = Type.SW
 val input = """
 7-LJ7.F-F77FF-77FJ-J-F7FF|777F7--..JJ.F.7.|.F-J7-J777F7FF77F|.|7L-7.F-|7F7FF-J7LF|.7--7J-F.F--7-L--77.|F-J77F7F|-F-F7-J-FFF---F--77|FF7--L7.
 L7.F--J.L7J7|---FJ-|JLF77L7J7F|-J7|J.FLLJ.FFF7|F7L7-J7LF7.-|L-77-LL7J.|.L-7JFJ7-7J7L-LFJF-7-|7|-|FL--J|L77L-J|7|F|-7J.|LLJJL|.|JF7-|-|||L|-F
