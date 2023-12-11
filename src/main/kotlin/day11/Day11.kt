@@ -2,21 +2,49 @@ package day11
 
 import Coord
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 fun main() {
     val observedSpace = input.lines().map { it.toList() }
+    part1(observedSpace)
+    part2(observedSpace)
+}
+
+private fun part1(observedSpace: List<List<Char>>) {
     val expandedSpace = expand(observedSpace)
     val galaxies = findGalaxies(expandedSpace)
     val pairs = getGalaxyPairs(galaxies)
     val sum = pairs.map {
         abs(it.first.x - it.second.x) + abs(it.first.y - it.second.y)
     }.sum()
-    println("Sum of distances: $sum")
+    println("Sum of distances for small expanded space: $sum")
+}
+
+private fun part2(observedSpace: List<List<Char>>) {
+    val expansionFactor = 1000000L
+    val expandedRows = findExpandedRows(observedSpace)
+    val expandedColumns = findExpandedColumns(observedSpace)
+    val galaxies = findGalaxies(observedSpace)
+    val pairs = getGalaxyPairs(galaxies)
+    val sum = pairs.map {
+        val columns = min(it.first.x, it.second.x) until max(it.first.x, it.second.x)
+        val rows = min(it.first.y, it.second.y) until max(it.first.y, it.second.y)
+        val distX = columns.map { x ->
+            if (expandedColumns.contains(x)) expansionFactor else 1L
+        }.sum()
+        val distY = rows.map { y ->
+            if (expandedRows.contains(y)) expansionFactor else 1L
+        }.sum()
+        distX + distY
+    }.sum()
+    println("Sum of distances for big expanded space: $sum")
+
 }
 
 fun getGalaxyPairs(galaxies: List<Coord>): List<Pair<Coord, Coord>> {
-    return galaxies.flatMapIndexed {  i, coord1 ->
-        galaxies.drop(i + 1).map {coord2 ->
+    return galaxies.flatMapIndexed { i, coord1 ->
+        galaxies.drop(i + 1).map { coord2 ->
             Pair(coord1, coord2)
         }
     }
@@ -27,7 +55,7 @@ fun findGalaxies(expandedSpace: List<List<Char>>): List<Coord> {
         line.mapIndexed { x, c ->
             if (c == '#') {
                 Coord(x, y)
-            }else {
+            } else {
                 null
             }
         }
@@ -50,6 +78,16 @@ private fun expand(space: List<List<Char>>): List<List<Char>> {
     }
     return expanded
 }
+
+private fun findExpandedRows(space: List<List<Char>>): List<Int> =
+    space.indices.filter { y ->
+        space[y].all { it == '.' }
+    }
+
+private fun findExpandedColumns(space: List<List<Char>>): List<Int> =
+    space[0].indices.filter { x ->
+        space.all { it[x] == '.' }
+    }
 
 val input = """
 ....................#........#...............................#............................................................#................#
