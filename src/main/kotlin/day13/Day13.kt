@@ -23,22 +23,34 @@ fun findMirror(group: List<List<Type>>, horiz: Boolean): Int? {
 }
 
 fun isMirror(mirror: Int, group: List<List<Type>>, horiz: Boolean): Boolean {
-    val mirrorPartSize = getDimensionSize(horiz, group) - mirror
-    val checkSize = min(mirror, mirrorPartSize)
+    val mirrorDimSize = getDimensionSize(horiz, group)
+    val otherPartSize = mirrorDimSize - mirror
+    val checkSize = min(mirror, otherPartSize)
     val otherDimSize = getDimensionSize(!horiz, group)
-    return (0 until checkSize).all { offsetFromMirror ->
-        (0 until otherDimSize).all { j ->
-            val i1 = mirror - offsetFromMirror - 1
-            val i2 = mirror + offsetFromMirror
-            val type1 = group.get(horiz, i1, j)
-            val type2 = group.get(horiz, i2, j)
-            type1 == type2
+    return (0 until mirrorDimSize).any { si ->
+        (0 until otherDimSize).any { sj ->
+            val smudgeInMirrorRange = (mirror - checkSize until mirror + checkSize).contains(si)
+            smudgeInMirrorRange && (0 until checkSize).all { offsetFromMirror ->
+                (0 until otherDimSize).all { j ->
+                    val i1 = mirror - offsetFromMirror - 1
+                    val i2 = mirror + offsetFromMirror
+                    val type1 = group.get(horiz, i1, j, si, sj)
+                    val type2 = group.get(horiz, i2, j, si, sj)
+                    type1 == type2
+                }
+            }
         }
     }
 }
 
-private fun List<List<Type>>.get(horiz: Boolean, i1: Int, j: Int) =
-    if (horiz) this[i1][j] else this[j][i1]
+private fun List<List<Type>>.get(horiz: Boolean, i: Int, j: Int, smudgeI: Int, smudgeJ: Int): Type {
+    val field = if (horiz) this[i][j] else this[j][i]
+    return if (i == smudgeI && j == smudgeJ) {
+        Type.entries.find { it != field }!!
+    }else {
+        field
+    }
+}
 
 private fun getDimensionSize(horiz: Boolean, group: List<List<Type>>) =
     if (horiz) group.size else group[0].size
