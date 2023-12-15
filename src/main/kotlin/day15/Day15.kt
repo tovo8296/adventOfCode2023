@@ -1,11 +1,50 @@
 package day15
 
+data class Lens(val name: String, val focalLength: Int)
+
+data class Command(val name: String, val focalLength: Int?)
+
 fun main() {
     val hashSum = input.split(",").map { hash(it) }.sum()
-    println(hashSum)
+    println("Total Hash sum: $hashSum")
+
+    val commands = parse()
+    val boxes = Array(256, { mutableListOf<Lens>() })
+    commands.forEach { cmd ->
+        val box = boxes[hash(cmd.name)]
+        if (cmd.focalLength == null) {
+            box.removeIf { it.name == cmd.name }
+        } else {
+            val exist = box.indexOfFirst { it.name == cmd.name }
+                val lens = Lens(cmd.name, cmd.focalLength)
+            if (exist == -1) {
+                box.add(lens)
+            }else {
+                box.set(exist, lens)
+            }
+        }
+    }
+    // calc focus power
+    val focusPower = boxes.mapIndexed { boxIndex, lenses ->
+        lenses.mapIndexed { lensIndex, lens ->
+            (boxIndex + 1) * (lensIndex + 1) * lens.focalLength
+        }.sum()
+    }.sum()
+    println("Focus power: $focusPower")
 }
+
+private fun parse() =
+    input.split(",").map { s ->
+        if (s.contains("-")) {
+            Command(s.trim().dropLast(1), null)
+        } else {
+            val eq = s.indexOf("=")
+            Command(s.take(eq), s.drop(eq + 1).toInt())
+        }
+    }
+
 fun hash(s: String): Int {
-    return s.fold(0){acc, c ->
+    return s.fold(0) { acc, c ->
         val i = c.code
         ((acc + i) * 17) % 256
     }
