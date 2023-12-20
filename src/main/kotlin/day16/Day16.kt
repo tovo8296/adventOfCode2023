@@ -4,23 +4,37 @@ import Coord
 import Direction
 import day10.getOrNull
 import java.lang.RuntimeException
+import kotlin.math.max
 
 data class Beam(var coord: Coord, var direction: Direction)
 
 fun main() {
     val grid = input.lines().map { it.toList() }
-    val energized = mutableMapOf<Coord, MutableList<Direction>>()
-    val beams = mutableListOf(Beam(Coord(-1, 0), Direction.E))
-    processBeams(beams, grid, energized)
-    println("Energized fields: ${energized.size}")
+
+    var maxEnergized = 0
+    // from top/bottom
+    (0 until grid[0].size).forEach { x ->
+        val energizedTop = processBeams(Beam(Coord(x, -1), Direction.S), grid)
+        maxEnergized = max(maxEnergized, energizedTop)
+        val energizedBottom = processBeams(Beam(Coord(x, grid.size), Direction.N), grid)
+        maxEnergized = max(maxEnergized, energizedBottom)
+    }
+
+    // left/right
+    (0 until grid.size).forEach { y ->
+        val energizedTop = processBeams(Beam(Coord(-1, y), Direction.S), grid)
+        maxEnergized = max(maxEnergized, energizedTop)
+        val energizedBottom = processBeams(Beam(Coord(grid[0].size, y), Direction.N), grid)
+        maxEnergized = max(maxEnergized, energizedBottom)
+    }
+
+    println("Energized fields: $maxEnergized")
 
 }
 
-fun processBeams(
-    beams: MutableList<Beam>,
-    grid: List<List<Char>>,
-    energized: MutableMap<Coord, MutableList<Direction>>
-) {
+fun processBeams(startBeam: Beam, grid: List<List<Char>>): Int {
+    val beams = mutableListOf(startBeam)
+    val energized = mutableMapOf<Coord, MutableList<Direction>>()
     while (beams.isNotEmpty()) {
         val beam = beams.first()
         val nextCoord = beam.direction.go(beam.coord)
@@ -74,6 +88,7 @@ fun processBeams(
             beams.removeFirst()
         }
     }
+    return energized.size
 }
 
 private val input = """
