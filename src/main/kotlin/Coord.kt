@@ -21,6 +21,10 @@ enum class Direction(val dx: Int, val dy: Int) {
     SW(-1, 1),
     SE(1, 1);
 
+    companion object {
+        val straightEntries = listOf(N, W, S, E)
+    }
+
     fun go(source: Coord): Coord = Coord(source.x + dx, source.y+dy)
 
 }
