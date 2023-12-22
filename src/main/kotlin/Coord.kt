@@ -9,6 +9,8 @@ data class Coord(val x: Int, val y: Int) {
     }
 }
 
+data class Coord3D(val x: Int, val y: Int, val z: Int)
+
 
 enum class Direction(val dx: Int, val dy: Int) {
     N(0, -1),
